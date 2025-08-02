@@ -7,16 +7,17 @@
 <style>
   body {
     font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
-    background-color: #fafafa;
+    background: linear-gradient(135deg, #4b006e, #000000); /* Mor ve siyah arka plan */
     margin: 0;
     padding: 40px 20px;
-    color: #333;
+    color: #fff; /* Yazı rengi beyaz */
   }
 
   h1 {
     text-align: center;
     margin-bottom: 20px;
     font-weight: 300;
+    color: #fff;
   }
 
   #searchInput {
@@ -32,7 +33,7 @@
     transition: box-shadow 0.2s;
   }
   #searchInput:focus {
-    box-shadow: 0 0 8px rgba(0,0,0,0.1);
+    box-shadow: 0 0 8px rgba(255,255,255,0.3);
   }
 
   #totalQuantity {
@@ -41,6 +42,7 @@
     text-align: right;
     font-size: 1.1em;
     font-weight: 500;
+    color: #fff;
   }
 
   form {
@@ -50,41 +52,36 @@
     flex-wrap: wrap;
     gap: 10px;
   }
-  input[type="text"], input[type="number"], input[type="text"] {
+  input[type="text"], input[type="number"], select {
     flex: 1 1 45%;
     padding: 10px 15px;
-    border: 1px solid #ccc;
+    border: 1px solid #555; /* Koyu renk */
     border-radius: 25px;
     font-size: 1em;
     outline: none;
-    transition: border-color 0.2s;
+    transition: border-color 0.2s, box-shadow 0.2s;
+    background-color: #222; /* Koyu arka plan */
+    color: #fff; /* Beyaz yazı */
   }
-  input[type="text"]:focus, input[type="number"]:focus {
-    border-color: #007BFF;
-  }
-
-  select {
-    flex: 1 1 45%;
-    padding: 10px 15px;
-    border: 1px solid #ccc;
-    border-radius: 25px;
-    font-size: 1em;
-    outline: none;
-    transition: border-color 0.2s;
+  input[type="text"]:focus, input[type="number"]:focus, select:focus {
+    border-color: #ff69b4; /* Mor-pembe renk */
+    box-shadow: 0 0 8px rgba(255,105,180,0.5);
   }
 
   button {
     padding: 10px 20px;
     border: none;
     border-radius: 25px;
-    background-color: #007BFF;
-    color: #fff;
+    background-color: #000; /* Siyah tuşlar */
+    color: #fff; /* Beyaz yazı */
     font-size: 1em;
     cursor: pointer;
-    transition: background-color 0.2s;
+    transition: background-color 0.2s, color 0.2s, box-shadow 0.2s;
   }
   button:hover {
-    background-color: #0056b3;
+    background-color: #fff; /* Hoverda beyaz */
+    color: #000; /* Yazı siyah */
+    box-shadow: 0 0 10px #fff; /* Parlaklık efekti */
   }
 
   table {
@@ -92,25 +89,31 @@
     max-width: 900px;
     margin: 0 auto 50px auto;
     border-collapse: collapse;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+    box-shadow: 0 2px 8px rgba(0,0,0,0.3);
     border-radius: 8px;
     overflow: hidden;
+    background-color: #222; /* Tablo arka planı koyu */
   }
   thead {
-    background-color: #f0f0f0;
+    background-color: #4b006e; /* Mor renk */
     cursor: pointer;
   }
   th, td {
     padding: 15px;
     text-align: center;
     font-size: 0.95em;
+    color: #fff;
   }
   th {
     font-weight: 600;
     letter-spacing: 0.03em;
   }
   tbody tr:nth-child(even) {
-    background-color: #fafafa;
+    background-color: #333; /* Açık ve koyu gri arası */
+  }
+  /* Düşük stok satırı rengi kırmızı */
+  tbody tr.low-stock {
+    background-color: #ff4d4d; /* Kırmızı tonu */
   }
   .actions button {
     all: unset;
@@ -118,7 +121,7 @@
     padding: 6px 12px;
     border-radius: 20px;
     font-size: 0.9em;
-    transition: background-color 0.2s;
+    transition: background-color 0.2s, color 0.2s, box-shadow 0.2s;
   }
   .actions button.edit {
     background-color: #17a2b8;
@@ -134,15 +137,21 @@
   .actions button.delete:hover {
     background-color: #a71d2a;
   }
-  /* Ekstra özellikler */
+  /* Export Button */
   #exportBtn {
     display: block;
     margin: 20px auto;
     padding: 10px 20px;
-    background-color: #28a745;
+    background-color: #000; /* Siyah */
+    color: #fff; /* Beyaz yazı */
+    border-radius: 25px;
+    cursor: pointer;
+    transition: background-color 0.2s, box-shadow 0.2s;
   }
   #exportBtn:hover {
-    background-color: #218838;
+    background-color: #fff; /* Hover */
+    color: #000;
+    box-shadow: 0 0 10px #fff;
   }
 </style>
 </head>
@@ -179,7 +188,7 @@
   <tbody></tbody>
 </table>
 
-<button id="exportBtn">CSV Olarak Dışa Aktar</button>
+<button id="exportBtn">Yusuf Orhan</button>
 
 <script>
   let products = JSON.parse(localStorage.getItem('products')) || [];
@@ -217,9 +226,6 @@
       // Miktar
       const qtyTd = document.createElement('td');
       qtyTd.textContent = p.quantity;
-      if (p.quantity < 5) {
-        qtyTd.style.backgroundColor = '#ffe5e5';
-      }
       row.appendChild(qtyTd);
 
       // Kategori
@@ -260,6 +266,12 @@
       actionsTd.appendChild(deleteBtn);
 
       row.appendChild(actionsTd);
+
+      // Düşük stok satır rengi kırmızı
+      if (p.quantity < 5) {
+        row.classList.add('low-stock');
+      }
+
       tbody.appendChild(row);
     });
 
