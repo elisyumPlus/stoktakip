@@ -1,0 +1,325 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Stok Takip</title>
+<style>
+  body {
+    font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+    background-color: #fafafa;
+    margin: 0;
+    padding: 40px 20px;
+    color: #333;
+  }
+
+  h1 {
+    text-align: center;
+    margin-bottom: 20px;
+    font-weight: 300;
+  }
+
+  #searchInput {
+    display: block;
+    width: 100%;
+    max-width: 400px;
+    margin: 0 auto 20px auto;
+    padding: 10px 15px;
+    border: 1px solid #ccc;
+    border-radius: 25px;
+    font-size: 1em;
+    outline: none;
+    transition: box-shadow 0.2s;
+  }
+  #searchInput:focus {
+    box-shadow: 0 0 8px rgba(0,0,0,0.1);
+  }
+
+  #totalQuantity {
+    max-width: 400px;
+    margin: 0 auto 20px auto;
+    text-align: right;
+    font-size: 1.1em;
+    font-weight: 500;
+  }
+
+  form {
+    max-width: 600px;
+    margin: 0 auto 30px auto;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+  }
+  input[type="text"], input[type="number"], input[type="text"] {
+    flex: 1 1 45%;
+    padding: 10px 15px;
+    border: 1px solid #ccc;
+    border-radius: 25px;
+    font-size: 1em;
+    outline: none;
+    transition: border-color 0.2s;
+  }
+  input[type="text"]:focus, input[type="number"]:focus {
+    border-color: #007BFF;
+  }
+
+  select {
+    flex: 1 1 45%;
+    padding: 10px 15px;
+    border: 1px solid #ccc;
+    border-radius: 25px;
+    font-size: 1em;
+    outline: none;
+    transition: border-color 0.2s;
+  }
+
+  button {
+    padding: 10px 20px;
+    border: none;
+    border-radius: 25px;
+    background-color: #007BFF;
+    color: #fff;
+    font-size: 1em;
+    cursor: pointer;
+    transition: background-color 0.2s;
+  }
+  button:hover {
+    background-color: #0056b3;
+  }
+
+  table {
+    width: 100%;
+    max-width: 900px;
+    margin: 0 auto 50px auto;
+    border-collapse: collapse;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+    border-radius: 8px;
+    overflow: hidden;
+  }
+  thead {
+    background-color: #f0f0f0;
+    cursor: pointer;
+  }
+  th, td {
+    padding: 15px;
+    text-align: center;
+    font-size: 0.95em;
+  }
+  th {
+    font-weight: 600;
+    letter-spacing: 0.03em;
+  }
+  tbody tr:nth-child(even) {
+    background-color: #fafafa;
+  }
+  .actions button {
+    all: unset;
+    cursor: pointer;
+    padding: 6px 12px;
+    border-radius: 20px;
+    font-size: 0.9em;
+    transition: background-color 0.2s;
+  }
+  .actions button.edit {
+    background-color: #17a2b8;
+    color: #fff;
+  }
+  .actions button.edit:hover {
+    background-color: #138496;
+  }
+  .actions button.delete {
+    background-color: #dc3545;
+    color: #fff;
+  }
+  .actions button.delete:hover {
+    background-color: #a71d2a;
+  }
+  /* Ekstra özellikler */
+  #exportBtn {
+    display: block;
+    margin: 20px auto;
+    padding: 10px 20px;
+    background-color: #28a745;
+  }
+  #exportBtn:hover {
+    background-color: #218838;
+  }
+</style>
+</head>
+<body>
+
+<h1>Stok Takip</h1>
+
+<input type="text" id="searchInput" placeholder="Ürün adına göre ara..." />
+
+<div id="totalQuantity">Toplam Miktar: 0</div>
+
+<form id="productForm">
+  <input type="text" id="name" placeholder="Ürün Adı" required />
+  <input type="number" id="quantity" placeholder="Miktar" min="0" required />
+  <select id="category">
+    <option value="">Kategori Seç</option>
+    <option value="Elektronik">Elektronik</option>
+    <option value="Giyim">Giyim</option>
+    <option value="Ev">Ev</option>
+    <option value="Yiyecek">Yiyecek</option>
+  </select>
+  <button type="submit">Ekle / Güncelle</button>
+</form>
+
+<table id="productTable">
+  <thead>
+    <tr>
+      <th>Ürün Adı</th>
+      <th>Miktar</th>
+      <th>Kategori</th>
+      <th>Eklenme Tarihi</th>
+      <th>İşlemler</th>
+    </tr>
+  </thead>
+  <tbody></tbody>
+</table>
+
+<button id="exportBtn">CSV Olarak Dışa Aktar</button>
+
+<script>
+  let products = JSON.parse(localStorage.getItem('products')) || [];
+  let editIndex = null;
+  let currentSort = null;
+
+  const tbody = document.querySelector('#productTable tbody');
+  const totalDiv = document.getElementById('totalQuantity');
+  const searchInput = document.getElementById('searchInput');
+
+  function render() {
+    tbody.innerHTML = '';
+    const filterText = searchInput.value.toLowerCase();
+
+    let displayProducts = [...products];
+
+    if (currentSort === 'name') {
+      displayProducts.sort((a,b) => a.name.localeCompare(b.name));
+    } else if (currentSort === 'date') {
+      displayProducts.sort((a,b) => new Date(a.date) - new Date(b.date));
+    } else if (currentSort === 'category') {
+      displayProducts.sort((a,b) => a.category.localeCompare(b.category));
+    }
+
+    displayProducts = displayProducts.filter(p => p.name.toLowerCase().includes(filterText));
+
+    displayProducts.forEach((p, index) => {
+      const row = document.createElement('tr');
+
+      // Ürün Adı
+      const nameTd = document.createElement('td');
+      nameTd.textContent = p.name;
+      row.appendChild(nameTd);
+
+      // Miktar
+      const qtyTd = document.createElement('td');
+      qtyTd.textContent = p.quantity;
+      if (p.quantity < 5) {
+        qtyTd.style.backgroundColor = '#ffe5e5';
+      }
+      row.appendChild(qtyTd);
+
+      // Kategori
+      const catTd = document.createElement('td');
+      catTd.textContent = p.category || '-';
+      row.appendChild(catTd);
+
+      // Tarih
+      const dateTd = document.createElement('td');
+      dateTd.textContent = p.date;
+      row.appendChild(dateTd);
+
+      // İşlemler
+      const actionsTd = document.createElement('td');
+      actionsTd.className = 'actions';
+
+      const editBtn = document.createElement('button');
+      editBtn.textContent = 'Düzenle';
+      editBtn.className = 'edit';
+      editBtn.onclick = () => {
+        document.getElementById('name').value = p.name;
+        document.getElementById('quantity').value = p.quantity;
+        document.getElementById('category').value = p.category;
+        editIndex = products.indexOf(p);
+      };
+      actionsTd.appendChild(editBtn);
+
+      const deleteBtn = document.createElement('button');
+      deleteBtn.textContent = 'Sil';
+      deleteBtn.className = 'delete';
+      deleteBtn.onclick = () => {
+        if (confirm('Silmek istediğinize emin misiniz?')) {
+          products.splice(products.indexOf(p), 1);
+          save();
+          render();
+        }
+      };
+      actionsTd.appendChild(deleteBtn);
+
+      row.appendChild(actionsTd);
+      tbody.appendChild(row);
+    });
+
+    // Güncel toplam
+    const total = products.reduce((sum, p) => sum + p.quantity, 0);
+    totalDiv.textContent = 'Toplam Miktar: ' + total;
+  }
+
+  function save() {
+    localStorage.setItem('products', JSON.stringify(products));
+  }
+
+  document.getElementById('productForm').onsubmit = e => {
+    e.preventDefault();
+    const name = document.getElementById('name').value.trim();
+    const quantity = parseInt(document.getElementById('quantity').value);
+    const category = document.getElementById('category').value;
+
+    if (name && quantity >= 0) {
+      if (editIndex !== null) {
+        products[editIndex].name = name;
+        products[editIndex].quantity = quantity;
+        products[editIndex].category = category;
+        editIndex = null;
+      } else {
+        products.push({ name, quantity, category, date: new Date().toLocaleString('tr-TR') });
+      }
+      save();
+      render();
+      document.getElementById('productForm').reset();
+    }
+  };
+
+  searchInput.oninput = () => render();
+
+  document.getElementById('exportBtn').onclick = () => {
+    let csvContent = "Ürün Adı,Miktar,Kategori,Eklenme Tarihi\n";
+    products.forEach(p => {
+      const row = [
+        p.name,
+        p.quantity,
+        p.category || '',
+        p.date
+      ].map(item => `"${item.replace(/"/g, '""')}"`).join(',');
+      csvContent += row + "\n";
+    });
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "stok_listesi.csv";
+    a.click();
+  };
+
+  // Sayfa ilk yüklendiğinde
+  window.onload = () => {
+    render();
+  };
+</script>
+
+</body>
+</html>
